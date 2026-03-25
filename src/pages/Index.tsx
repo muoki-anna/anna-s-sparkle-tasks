@@ -82,6 +82,7 @@ const Index = () => {
       >
         <div className="flex items-center justify-center gap-2 mb-1">
           <Sparkles size={20} className="text-secondary" />
+          <img src="/favicon.ico" alt="Logo" className="w-8 h-8 rounded-full object-cover shadow-cute" />
           <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground font-body font-semibold">
             Anna's Schedule Planner
           </p>
