@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, Plus, Sparkles, Heart, Calendar, Clock, Star } from "lucide-react";
+import { Trash2, Plus, Sparkles, Heart, Calendar, Clock, Star, Download, Moon, Sun } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
@@ -24,6 +26,22 @@ const Index = () => {
   const [input, setInput] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedTime, setSelectedTime] = useState("");
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    if (document.documentElement.classList.contains("dark")) {
+      setIsDark(true);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDark(prev => {
+      const newDark = !prev;
+      if (newDark) document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+      return newDark;
+    });
+  };
 
   const addTodo = () => {
     const trimmed = input.trim();
@@ -53,24 +71,82 @@ const Index = () => {
     setTodos((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const downloadWeeklyPDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFontSize(22);
+    doc.setTextColor(236, 72, 153);
+    doc.text("Anna's Weekly Schedule", 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Generated on ${format(new Date(), "MMM d, yyyy")}`, 14, 30);
+    
+    const sortedTodos = [...todos].sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return a.date.getTime() - b.date.getTime();
+    });
+
+    const tableData = sortedTodos.map(todo => [
+      todo.text,
+      todo.date ? format(todo.date, "MMM d, yyyy") : "No date",
+      todo.time || "No time",
+      todo.completed ? "Done" : "Pending"
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["Task", "Date", "Time", "Status"]],
+      body: tableData,
+      theme: "grid",
+      headStyles: { fillColor: [244, 114, 182] },
+      styles: { fontSize: 11, cellPadding: 5, font: "helvetica" },
+      alternateRowStyles: { fillColor: [253, 242, 248] },
+    });
+
+    doc.save("annas-weekly-schedule.pdf");
+  };
+
   const completedCount = todos.filter((t) => t.completed).length;
 
   return (
-    <div className="min-h-screen gradient-hero flex flex-col items-center px-4 py-8 relative overflow-hidden">
+    <div className="min-h-screen gradient-hero flex flex-col items-center px-4 pt-20 sm:pt-12 pb-8 relative overflow-hidden transition-colors duration-500">
+      
+      {/* Top action buttons */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 md:top-8 md:right-8 flex sm:flex-row items-center gap-2 sm:gap-3 z-50">
+        <button 
+          onClick={toggleTheme}
+          className="flex items-center justify-center p-2 rounded-full gradient-primary text-primary-foreground shadow-cute hover:scale-105 active:scale-95 transition-transform"
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+        
+        <button 
+          onClick={downloadWeeklyPDF}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-full gradient-primary text-primary-foreground shadow-cute hover:scale-105 active:scale-95 transition-transform text-sm font-semibold focus:outline-none"
+        >
+          <Download size={16} />
+          Weekly PDF
+        </button>
+      </div>
+
       {/* Decorative floating elements */}
-      <div className="absolute top-10 left-10 text-secondary animate-float opacity-60">
+      <div className="absolute top-[8%] left-[5%] md:top-10 md:left-10 text-secondary animate-float opacity-60">
         <Heart size={24} fill="currentColor" />
       </div>
-      <div className="absolute top-20 right-16 text-primary animate-float opacity-50" style={{ animationDelay: "1s" }}>
+      <div className="absolute top-[18%] right-[8%] md:top-20 md:right-16 text-primary animate-float opacity-50" style={{ animationDelay: "1s" }}>
         <Sparkles size={20} />
       </div>
-      <div className="absolute bottom-32 left-20 text-accent animate-sparkle opacity-40">
+      <div className="absolute bottom-[25%] left-[8%] md:bottom-32 md:left-20 text-accent animate-sparkle opacity-40">
         <Heart size={16} fill="currentColor" />
       </div>
-      <div className="absolute top-40 right-8 text-secondary animate-sparkle opacity-50" style={{ animationDelay: "0.5s" }}>
+      <div className="absolute top-[45%] right-[5%] md:top-40 md:right-8 text-secondary animate-sparkle opacity-50" style={{ animationDelay: "0.5s" }}>
         <Sparkles size={14} />
       </div>
-      <div className="absolute bottom-20 right-24 text-primary animate-float opacity-30" style={{ animationDelay: "1.5s" }}>
+      <div className="absolute bottom-[10%] right-[12%] md:bottom-20 md:right-24 text-primary animate-float opacity-30" style={{ animationDelay: "1.5s" }}>
         <Star size={18} fill="currentColor" />
       </div>
 
@@ -88,7 +164,7 @@ const Index = () => {
           </p>
           <Sparkles size={20} className="text-secondary" />
         </div>
-        <h1 className="font-display text-5xl md:text-6xl gradient-primary bg-clip-text text-transparent mb-3">
+        <h1 className="font-display text-4xl sm:text-5xl md:text-6xl gradient-primary bg-clip-text text-transparent mb-3 px-2">
           To Do List
         </h1>
         <p className="text-muted-foreground font-body text-base flex items-center justify-center gap-1.5">
@@ -124,14 +200,14 @@ const Index = () => {
         transition={{ delay: 0.2 }}
         className="w-full max-w-md mb-6"
       >
-        <div className="gradient-card rounded-2xl border border-border shadow-card p-4 space-y-3">
+        <div className="bg-white/40 dark:bg-black/40 backdrop-blur-md rounded-2xl border border-white/50 dark:border-white/10 shadow-card p-4 space-y-3">
           <div className="flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTodo()}
               placeholder="What's on your mind, babe? 💭"
-              className="flex-1 px-4 py-2.5 rounded-xl bg-background/60 border border-border text-foreground font-body text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-white/50 dark:bg-black/50 border border-white/40 dark:border-white/20 text-foreground font-body text-sm placeholder:text-muted-foreground dark:placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all shadow-sm"
             />
             <button
               onClick={addTodo}
@@ -142,7 +218,7 @@ const Index = () => {
           </div>
 
           {/* Date & Time pickers */}
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <button
@@ -150,7 +226,7 @@ const Index = () => {
                     "flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-body transition-colors",
                     selectedDate
                       ? "bg-primary/10 border-primary/30 text-foreground"
-                      : "bg-background/40 border-border text-muted-foreground hover:border-primary/30"
+                      : "bg-background/40 dark:bg-black/40 border-border dark:border-white/10 text-muted-foreground hover:border-primary/30 dark:hover:border-primary/30"
                   )}
                 >
                   <Calendar size={14} />
@@ -173,7 +249,7 @@ const Index = () => {
                 "flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-body transition-colors",
                 selectedTime
                   ? "bg-primary/10 border-primary/30"
-                  : "bg-background/40 border-border"
+                  : "bg-background/40 dark:bg-black/40 border-border dark:border-white/10"
               )}
             >
               <Clock size={14} className="text-muted-foreground" />
@@ -181,7 +257,7 @@ const Index = () => {
                 type="time"
                 value={selectedTime}
                 onChange={(e) => setSelectedTime(e.target.value)}
-                className="bg-transparent text-foreground focus:outline-none font-body text-xs w-20"
+                className="bg-transparent text-foreground focus:outline-none font-body text-xs w-full min-w-0"
               />
             </div>
           </div>
@@ -211,21 +287,21 @@ const Index = () => {
               exit={{ opacity: 0, x: 40, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className={cn(
-                "flex items-center gap-3 px-4 py-3.5 rounded-2xl border shadow-card transition-all font-body group",
+                "flex items-center gap-3 px-4 py-3.5 rounded-2xl border shadow-sm transition-all font-body group backdrop-blur-sm",
                 todo.completed
-                  ? "bg-muted/40 border-border"
-                  : "gradient-card border-border hover:shadow-cute"
+                  ? "bg-white/10 dark:bg-black/10 border-white/20 dark:border-white/10"
+                  : "bg-white/60 dark:bg-black/20 border-white/50 dark:border-white/10 hover:shadow-cute"
               )}
             >
               <Checkbox
                 checked={todo.completed}
                 onCheckedChange={() => toggleTodo(todo.id)}
-                className="h-5 w-5 rounded-md border-2 border-primary/40 data-[state=checked]:gradient-primary data-[state=checked]:border-transparent transition-all"
+                className="h-5 w-5 rounded-md border-2 border-primary/40 data-[state=checked]:gradient-primary data-[state=checked]:border-transparent transition-all bg-white/50"
               />
               <div className="flex-1 min-w-0">
                 <span
                   className={cn(
-                    "text-sm transition-all block",
+                    "text-sm transition-all block break-words",
                     todo.completed
                       ? "text-muted-foreground opacity-60"
                       : "text-foreground"
